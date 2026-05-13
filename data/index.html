@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ScoutFlow V59 K12 Admin CSV Final</title>
+<style>
+:root{--bg:#070b14;--line:rgba(255,255,255,.12);--text:#f5f7fb;--muted:#9fb9dc;--accent:#66efb0;--blue:#78aaff;--warn:#ffd166;--red:#ff7a7a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top left,#112a22 0,#070b14 45%,#0b1220 100%);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-weight:650}.top{position:sticky;top:0;z-index:10;padding:13px 7vw;background:rgba(7,11,20,.92);border-bottom:1px solid var(--line);display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}.badge{display:inline-block;border:1px solid rgba(102,239,176,.4);background:rgba(102,239,176,.08);color:var(--accent);border-radius:999px;padding:8px 13px;font-weight:950}.mode{border:1px solid rgba(120,170,255,.35);background:rgba(120,170,255,.1);color:#cfe0ff}.wrap{max-width:1720px;margin:0 auto;padding:30px 24px 80px}.hero{display:grid;grid-template-columns:1fr 620px;gap:24px;align-items:center}h1{font-size:clamp(48px,5.4vw,82px);letter-spacing:-.06em;line-height:1;margin:14px 0 10px}p{color:var(--muted);line-height:1.68}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;background:rgba(255,255,255,.055);border:1px solid var(--line);border-radius:24px;padding:17px}.kpi{border:1px solid var(--line);background:rgba(255,255,255,.04);border-radius:18px;padding:15px}.kpi b{font-size:29px;display:block}.kpi span{font-size:12px;color:var(--muted)}button{border:0;border-radius:14px;padding:12px 16px;margin:0 8px 8px 0;font-weight:950;cursor:pointer}.primary{background:var(--accent);color:#06130d}.blue{background:var(--blue);color:#07162e}.secondary{background:rgba(255,255,255,.08);border:1px solid var(--line);color:var(--text)}.danger{background:rgba(255,122,122,.12);border:1px solid rgba(255,122,122,.35);color:#ffd2d2}.main{display:grid;grid-template-columns:360px minmax(0,1fr);gap:18px;margin-top:23px;align-items:start}.card{background:rgba(255,255,255,.055);border:1px solid var(--line);border-radius:22px;overflow:hidden}.head{padding:18px 20px;border-bottom:1px solid var(--line)}.head h2{margin:0 0 5px}.body{padding:18px 20px}label{display:block;font-size:12px;color:#b7cdf1;margin:0 0 6px;font-weight:900}input,select{width:100%;background:rgba(0,0,0,.25);border:1px solid var(--line);color:var(--text);border-radius:13px;padding:12px;margin:0 0 13px;font-weight:800}.status{border:1px solid rgba(102,239,176,.3);background:rgba(102,239,176,.08);border-radius:15px;padding:12px;color:#dff8ed;font-size:12px;line-height:1.65;margin-top:10px}.warn{border-color:rgba(255,209,102,.35);background:rgba(255,209,102,.08);color:#ffe6a4}.bad{border-color:rgba(255,122,122,.35);background:rgba(255,122,122,.08);color:#ffd2d2}.tablewrap{overflow:auto;max-height:74vh}table{width:100%;border-collapse:collapse;min-width:1340px}th,td{padding:12px;border-bottom:1px solid rgba(255,255,255,.07);text-align:left;white-space:nowrap}th{position:sticky;top:0;background:#102033;color:#d9ecff;z-index:2;font-size:13px}td{font-size:14px}.rank{color:#66efb0;font-weight:950}.pill{display:inline-block;border-radius:999px;padding:5px 13px;background:#9dc0ff;color:#06130d;font-weight:950}.empty{color:#7d8da8}.hide{display:none!important}a{color:#8eb7ff}.mono{font-family:ui-monospace,Consolas,monospace}.small{font-size:12px;color:var(--muted);line-height:1.55}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.topActions button{margin-bottom:0}.modeBtn{padding:9px 12px;font-size:12px}.activeMode{background:var(--accent)!important;color:#06130d!important;border-color:rgba(102,239,176,.65)!important}.inactiveMode{background:rgba(255,255,255,.08)!important;color:var(--text)!important;border:1px solid var(--line)!important}
+@media(max-width:1100px){.hero,.main{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header class="top">
+<div class="row" style="flex:0 1 auto">
+<span class="badge">V59-K12 · K리그1/2 프로필 보강 · PORT 8058</span>
+<span class="badge mode" id="modeBadge">사용자 모드</span>
+</div>
+<div class="topActions row" style="flex:0 1 auto">
+<button id="userModeBtn" class="modeBtn secondary" onclick="switchMode('user')">사용자 모드</button>
+<button id="adminModeBtn" class="modeBtn blue" onclick="switchMode('admin')">관리자 모드</button>
+<span class="mono" id="topStatus">서버 확인 중</span>
+</div>
+</header>
+<main class="wrap">
+<section class="hero">
+<div>
+<h1>ScoutFlow</h1>
+<p>사용자용 화면은 선수 검색과 랭킹 확인 중심입니다. 프로필 반영·기본 데이터 복구·원본 다운로드는 관리자 로그인 후 사용할 수 있습니다.</p>
+<button class="primary" onclick="search.focus()">선수 검색</button>
+<button id="csvDownloadBtn" class="secondary adminOnly hide" onclick="downloadCSV()">CSV 다운로드</button>
+</div>
+<div class="kpis">
+<div class="kpi"><span>표시 선수</span><b id="kShown">0</b><span>현재 필터 기준</span></div>
+<div class="kpi"><span>전체 선수</span><b id="kTotal">0</b><span>DB 기준</span></div>
+<div class="kpi"><span>프로필 완성률</span><b id="kComplete">0%</b><span>포지션·키·년생</span></div>
+<div class="kpi"><span>최근 업데이트</span><b id="kState" style="font-size:20px">확인 중</b><span id="kStateSub">YYYY-MM-DD HH:MM</span></div>
+</div>
+</section>
+<section class="main">
+<aside>
+<section class="card">
+<div class="head"><h2>필터</h2><p>리그 선택 시 팀/포지션 목록이 자동 갱신됩니다.</p></div>
+<div class="body">
+<label>리그</label><select id="competitionFilter" onchange="setupFilters();render()"><option>U리그</option><option>K리그1</option><option>K리그2</option><option>K리그3</option></select>
+<label>선수명 또는 팀명</label><input id="search" placeholder="선수명 또는 팀명 입력" oninput="render()"><button class="secondary" style="width:100%" onclick="resetFilters()">검색 초기화</button>
+<label>팀/대학</label><select id="teamFilter" onchange="render()"><option value="">전체 팀/대학</option></select>
+<label>포지션</label><select id="positionFilter" onchange="render()"><option value="">전체 포지션</option></select>
+<label>최소 경기수</label><input id="minMatches" type="number" value="0" min="0" onchange="render()">
+<div class="status" id="dataStatus">데이터 로딩 중</div>
+<div class="status warn" id="workStatus">상태: 대기</div>
+</div>
+</section>
+<section class="card hide" style="margin-top:18px" id="adminPanel">
+<div class="head"><h2>관리자 모드</h2><p>관리자 모드에서 로그인하면 프로필 반영, 기본 데이터 복구, 원본 다운로드, 비밀번호 변경을 사용할 수 있습니다.</p></div>
+<div class="body">
+<div id="loginBox">
+<label>관리자 비밀번호</label><input id="adminPassword" type="password" placeholder="관리자 비밀번호 입력" onkeydown="if(event.key==='Enter')adminLogin()">
+<button class="blue" style="width:100%" onclick="adminLogin()">관리자 로그인</button>
+</div>
+<div id="adminBox" class="hide">
+<div class="status">관리자 로그인 상태입니다. 작업 버튼은 서버에서 비밀번호 토큰을 확인한 뒤 실행됩니다.</div>
+<button class="blue" style="width:100%;margin-top:10px" onclick="repairProfiles()">프로필 자동반영 실행</button>
+<button class="secondary" style="width:100%;margin-top:6px" onclick="downloadRawJson()">JSON 원본 다운로드</button>
+<button class="danger" style="width:100%;margin-top:6px" onclick="resetData()">기본 데이터 복구</button>
+<hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+<label>현재 비밀번호</label><input id="oldPassword" type="password" placeholder="현재 비밀번호">
+<label>새 비밀번호</label><input id="newPassword" type="password" placeholder="새 비밀번호 8자 이상">
+<button class="secondary" style="width:100%" onclick="changePassword()">비밀번호 변경</button>
+<button class="secondary" style="width:100%;margin-top:6px" onclick="adminLogout()">관리자 로그아웃</button>
+</div>
+<div class="status warn" id="adminStatus">사용자용 화면입니다. 관리자 작업은 로그인 후 표시됩니다.</div>
+<p class="small">비밀번호 변경 후에는 변경된 비밀번호로 로그인하세요.</p>
+</div>
+</section>
+</aside>
+<section class="card">
+<div class="head"><h2>선수 랭킹</h2><p>K리그1·K리그2는 내장 프로필 캐시를 먼저 적용하고, U리그 데이터는 기존 V59 흐름 그대로 유지합니다.</p></div>
+<div class="tablewrap"><table><thead id="rankHead"></thead><tbody id="rankBody"></tbody></table></div>
+</section>
+</section>
+</main>
+<script>
+let raw={players:[],metadata:{}}, players=[], filtered=[];
+let adminToken=localStorage.getItem('scoutflow_admin_token')||'';
+let currentMode=localStorage.getItem('scoutflow_view_mode')||'user';
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function fmt(x,d=1){return Number(x||0).toFixed(d)}
+function validBirth(v){let m=String(v||'').match(/(19\d{2}|20\d{2})/); if(!m)return false; let y=Number(m[1]); return y>=1980&&y<=2011}
+function validHeight(v){let h=Number(v||0); return h>=145&&h<=215}
+function pos(p){let d=String(p.display_position||'').trim(); if(d)return d; let v=String(p.position||p.position_group||'').trim(); if(['수집중','검증필요','공식확인 대기','공격적인 대기','확인중','자동반영 대기','-','기타','UNK'].includes(v))v=''; let r=String(p.position_role||'').trim(); return v || ((r&&r!=='기타'&&r!=='UNK')?r:'')}
+function profile(p){let d=String(p.display_profile||'').trim(); if(d)return d; let a=[]; let h=p.height_cm||p.height||p.stature; if(validHeight(h))a.push(Number(h).toFixed(0)+'cm'); let b=p.birthdate||p.birth_date||p.date_of_birth; if(validBirth(b)){let y=String(b).match(/(19\d{2}|20\d{2})/)[1].slice(2)+'년생'; a.push(y)} return a.join(' / ')}
+function complete(p){return !!(pos(p)&&profile(p))}
+function hasStats(p){return Number(p.matches||0)+Number(p.goals||0)+Number(p.assists||0)>0}
+function authHeaders(extra={}){return Object.assign({'X-Admin-Token':adminToken},extra)}
+function setAdminUI(){let adminView=currentMode==='admin';let ok=!!adminToken;adminPanel.classList.toggle('hide',!adminView);loginBox.classList.toggle('hide',!adminView||ok);adminBox.classList.toggle('hide',!adminView||!ok);modeBadge.textContent=adminView?'관리자 모드':'사용자 모드';modeBadge.style.color=adminView?'#66efb0':'#cfe0ff';userModeBtn.classList.toggle('activeMode',!adminView);adminModeBtn.classList.toggle('activeMode',adminView);userModeBtn.classList.toggle('inactiveMode',adminView);adminModeBtn.classList.toggle('inactiveMode',!adminView);document.querySelectorAll('.adminOnly').forEach(el=>el.classList.toggle('hide',!ok));adminStatus.textContent=ok?'관리자 로그인 상태입니다.':'관리자 모드입니다. 비밀번호 입력 후 로그인하세요.'}
+function switchMode(mode){currentMode=mode==='admin'?'admin':'user';localStorage.setItem('scoutflow_view_mode',currentMode);setAdminUI();if(currentMode==='admin'){setTimeout(()=>{adminPanel.scrollIntoView({behavior:'smooth',block:'start'});if(!adminToken)adminPassword.focus()},80)}else{setTimeout(()=>document.querySelector('.hero').scrollIntoView({behavior:'smooth',block:'start'}),80)}}
+async function verifySavedToken(){if(!adminToken){setAdminUI();return}try{let r=await fetch('/api/admin/check',{headers:authHeaders()});let j=await r.json();if(!j.ok){adminToken='';localStorage.removeItem('scoutflow_admin_token')}}catch(e){}setAdminUI()}
+async function loadData(){try{let r=await fetch('/api/data');raw=await r.json();players=raw.players||[];setupFilters();render();dataStatus.textContent=`데이터 로딩 완료 · 총 ${players.length}명`;await pollStatus(false)}catch(e){dataStatus.textContent='데이터 로딩 실패: '+e.message}}
+function setupFilters(){let comp=competitionFilter.value;let pool=players.filter(p=>!comp||p.competition===comp);let oldT=teamFilter.value,oldP=positionFilter.value;teamFilter.innerHTML='<option value="">전체 팀/대학</option>'+[...new Set(pool.map(p=>p.team).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join('');positionFilter.innerHTML='<option value="">전체 포지션</option>'+[...new Set(pool.map(pos).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join('');if([...teamFilter.options].some(o=>o.value===oldT))teamFilter.value=oldT;if([...positionFilter.options].some(o=>o.value===oldP))positionFilter.value=oldP}
+function render(){let q=search.value.trim().toLowerCase(),comp=competitionFilter.value,team=teamFilter.value,pf=positionFilter.value,min=Number(minMatches.value||0);filtered=players.filter(p=>(!comp||p.competition===comp)&&(!team||p.team===team)&&(!pf||pos(p)===pf)&&Number(p.matches||0)>=min&&(!q||`${p.name} ${p.team}`.toLowerCase().includes(q)));const order={'FW':0,'공격수':0,'MF':1,'미드필더':1,'DF':2,'수비수':2,'GK':3,'골키퍼':3};filtered.sort((a,b)=>(hasStats(b)-hasStats(a))||(Number(b.upi_adjusted||0)-Number(a.upi_adjusted||0))||((order[pos(a)]??9)-(order[pos(b)]??9))||String(a.name).localeCompare(String(b.name),'ko'));renderKpis();renderTable()}
+function countMissingShown(){return filtered.filter(p=>!(pos(p)&&profile(p))).length}
+function renderKpis(){kShown.textContent=filtered.length;kTotal.textContent=players.length;let c=players.filter(complete).length;kComplete.textContent=players.length?((c/players.length*100).toFixed(1)+'%'):'0%';let m=countMissingShown();if(m===0)workStatus.textContent='상태: 선택된 표의 포지션/프로필 결측 0명';else workStatus.textContent=`상태: 선택된 표 결측 ${m}명 · K1/K2는 내장 캐시로 즉시 표시`}
+function renderTable(){rankHead.innerHTML='<tr><th>순위</th><th>선수</th><th>리그</th><th>팀/대학</th><th>포지션</th><th>프로필</th><th>경기</th><th>득점</th><th>도움</th><th>SFI</th><th>신뢰도</th><th>등급</th><th>영상</th><th>상세</th></tr>';rankBody.innerHTML=filtered.map((p,i)=>`<tr><td><span class="rank">${i+1}</span></td><td><strong>${esc(p.name)}</strong></td><td>${esc(p.competition)}</td><td>${esc(p.team)}</td><td>${pos(p)?esc(pos(p)):'<span class="empty">-</span>'}</td><td>${profile(p)?esc(profile(p)):'<span class="empty">-</span>'}</td><td>${fmt(p.matches,0)}</td><td>${fmt(p.goals,0)}</td><td>${fmt(p.assists,0)}</td><td>${fmt(p.upi_adjusted,1)}</td><td>${fmt(p.reliability,0)}%</td><td><span class="pill">${esc(p.grade||'')}</span></td><td><a target="_blank" href="${esc(p.highlight_url||('https://www.youtube.com/results?search_query='+encodeURIComponent((p.name||'')+' '+(p.team||'')+' 축구 하이라이트')))}">영상</a></td><td><a target="_blank" href="${esc(p.detail_url||('https://www.google.com/search?q='+encodeURIComponent((p.name||'')+' '+(p.team||''))))}">상세</a></td></tr>`).join('')}
+async function adminLogin(){adminStatus.textContent='로그인 확인 중';let r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPassword.value})});let j=await r.json().catch(()=>({ok:false,message:'응답 파싱 실패'}));if(j.ok){adminToken=j.token;localStorage.setItem('scoutflow_admin_token',adminToken);adminPassword.value='';setAdminUI();adminStatus.textContent='관리자 로그인 완료'}else{adminStatus.textContent=j.message||'로그인 실패'}}
+async function adminLogout(){await fetch('/api/admin/logout',{method:'POST',headers:authHeaders()}).catch(()=>{});adminToken='';localStorage.removeItem('scoutflow_admin_token');setAdminUI();adminStatus.textContent='로그아웃 완료'}
+async function changePassword(){if(!adminToken){adminStatus.textContent='먼저 관리자 로그인하세요.';return}let oldp=oldPassword.value,newp=newPassword.value;if(newp.length<8){adminStatus.textContent='새 비밀번호는 8자 이상이어야 합니다.';return}let r=await fetch('/api/admin/change-password',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({current_password:oldp,new_password:newp})});let j=await r.json().catch(()=>({ok:false,message:'응답 파싱 실패'}));if(j.ok){adminToken=j.token;localStorage.setItem('scoutflow_admin_token',adminToken);oldPassword.value='';newPassword.value='';setAdminUI();adminStatus.textContent='비밀번호 변경 완료'}else{adminStatus.textContent=j.message||'비밀번호 변경 실패'}}
+async function repairProfiles(){if(!adminToken){adminStatus.textContent='관리자 로그인 후 실행 가능합니다.';return}workStatus.textContent='상태: 시작 요청 중';let r=await fetch('/api/repair-profiles',{method:'POST',headers:authHeaders()});let j=await r.json().catch(()=>({ok:false,message:'응답 파싱 실패'}));if(!j.ok){workStatus.textContent=j.message||'실행 실패';return}pollStatus(true)}
+function lastUpdateText(status={}){let u=(status.update_status&&status.update_status.last_success_at_display)||(raw.metadata&&raw.metadata.update_status&&raw.metadata.update_status.last_success_at_display)||'';return u?String(u).slice(0,16):'기록 없음'}
+async function pollStatus(loop=true){try{let r=await fetch('/api/status');let s=await r.json();topStatus.textContent=`${s.version} · PORT ${s.port||8058}`;let updated=lastUpdateText(s);kState.textContent=updated;kStateSub.textContent=s.running?`${s.checked||0}/${s.target_total||'?'} 확인 · ${s.fixed||0} 보강`:(updated==='기록 없음'?'업데이트 기록 없음':'최근 업데이트 시간');workStatus.textContent=s.running?`상태: 진행 중 · ${s.phase} · ${s.checked||0}/${s.target_total||'?'}명 확인 · ${s.fixed||0}명 보강 · 오류 ${s.errors||0}건`:`상태: ${s.message||'대기'}`;if(s.running){await loadDataNoSetup(); if(loop)setTimeout(()=>pollStatus(true),2000)}else{await loadDataNoSetup()}}catch(e){workStatus.textContent='상태 확인 실패: '+e.message}}
+async function loadDataNoSetup(){let r=await fetch('/api/data');raw=await r.json();players=raw.players||[];render()}
+async function resetData(){if(!adminToken){adminStatus.textContent='관리자 로그인 후 실행 가능합니다.';return}if(!confirm('기본 데이터로 복구할까요? 현재 수정 내용은 사라질 수 있습니다.'))return;let r=await fetch('/api/reset',{method:'POST',headers:authHeaders()});let j=await r.json().catch(()=>({ok:false,message:'응답 파싱 실패'}));if(!j.ok){adminStatus.textContent=j.message||'복구 실패';return}adminStatus.textContent='기본 데이터 복구 완료';await loadData()}
+function resetFilters(){search.value='';teamFilter.value='';positionFilter.value='';minMatches.value=0;render()}
+function downloadCSV(){if(!adminToken){adminStatus.textContent='관리자 로그인 후 CSV 다운로드가 가능합니다.';switchMode('admin');return}let params=new URLSearchParams();if(competitionFilter.value)params.set('competition',competitionFilter.value);if(teamFilter.value)params.set('team',teamFilter.value);if(positionFilter.value)params.set('position',positionFilter.value);if(search.value.trim())params.set('q',search.value.trim());params.set('min_matches',minMatches.value||'0');fetch('/api/export-csv?'+params.toString(),{headers:authHeaders()}).then(r=>{if(!r.ok)throw new Error('CSV 다운로드 권한 없음');return r.blob()}).then(blob=>{let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='scoutflow_admin_export.csv';a.click();adminStatus.textContent='CSV 다운로드 완료'}).catch(e=>adminStatus.textContent=e.message)}
+function downloadRawJson(){if(!adminToken){adminStatus.textContent='관리자 로그인 후 다운로드 가능합니다.';return}fetch('/api/export',{headers:authHeaders()}).then(r=>{if(!r.ok)throw new Error('다운로드 권한 없음');return r.blob()}).then(blob=>{let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='scoutflow_v59_data.json';a.click();adminStatus.textContent='JSON 다운로드 완료'}).catch(e=>adminStatus.textContent=e.message)}
+verifySavedToken();loadData();
+</script>
+</body>
+</html>
