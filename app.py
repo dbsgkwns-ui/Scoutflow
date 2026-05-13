@@ -15,25 +15,37 @@ from typing import Any, Dict, List
 
 import requests
 from bs4 import BeautifulSoup
-from flask import Flask, jsonify, render_template, send_file, request
+from flask import Flask, jsonify, render_template, send_file, request, Response
 
 APP = Flask(__name__, template_folder=".")
-APP_VERSION = "V59_K12_PUBLIC_DOMAIN_READY"
-APP_PORT = 8058
+APP_VERSION = "V59_K12_ADMIN_CSV_ONLY"
+APP_PORT = int(os.environ.get("PORT", os.environ.get("SCOUTFLOW_PORT", "8058")))
 BIND_HOST = os.environ.get("SCOUTFLOW_BIND_HOST", "0.0.0.0")
 
 BASE = Path(__file__).resolve().parent
-DATA_DIR = BASE / "data"
-LOG_DIR = BASE / "logs"
+DATA_DIR = Path(os.environ.get("SCOUTFLOW_DATA_DIR", str(BASE / "data")))
+LOG_DIR = Path(os.environ.get("SCOUTFLOW_LOG_DIR", str(BASE / "logs")))
+DEFAULT_DATA_DIR = BASE / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+# Cloud deploy note:
+# If SCOUTFLOW_DATA_DIR points to an empty persistent disk, seed it once from the bundled data folder.
+def _seed_external_data_dir() -> None:
+    for name in ["current_index.json", "seed_index.json", "kleague_profile_cache.json"]:
+        dst = DATA_DIR / name
+        src = DEFAULT_DATA_DIR / name
+        if not dst.exists() and src.exists() and dst.resolve() != src.resolve():
+            shutil.copy(src, dst)
+
+_seed_external_data_dir()
 
 CURRENT = DATA_DIR / "current_index.json"
 SEED = DATA_DIR / "seed_index.json"
 RUN_LOG = LOG_DIR / "last_server_run.log"
 
 ADMIN_CONFIG = DATA_DIR / "admin_config.json"
-DEFAULT_ADMIN_PASSWORD = "scoutflow2026"
+DEFAULT_ADMIN_PASSWORD = os.environ.get("SCOUTFLOW_ADMIN_PASSWORD", "scoutflow2026")
 ADMIN_TOKENS: set[str] = set()
 
 
@@ -549,11 +561,117 @@ def api_reset():
     log("데이터를 기본값으로 복구", "초기화")
     return jsonify({"ok": True})
 
+
+
+def _csv_profile_value(p: Dict[str, Any]) -> str:
+    display = clean(p.get("display_profile"))
+    if display:
+        return display
+    parts: list[str] = []
+    height = p.get("height_cm") or p.get("height") or p.get("stature")
+    if valid_height(height):
+        parts.append(f"{int(float(height))}cm")
+    birth = p.get("birthdate") or p.get("birth_date") or p.get("date_of_birth")
+    m = re.search(r"(19\d{2}|20\d{2})", str(birth or ""))
+    if m and valid_birth(birth):
+        parts.append(f"{m.group(1)[2:]}년생")
+    return " / ".join(parts)
+
+
+def _csv_grade_value(p: Dict[str, Any]) -> str:
+    return clean(p.get("grade"))
+
+
+def _csv_filtered_players(data: Dict[str, Any]) -> list[Dict[str, Any]]:
+    q = clean(request.args.get("q", "")).lower()
+    competition = clean(request.args.get("competition", ""))
+    team = clean(request.args.get("team", ""))
+    position = clean(request.args.get("position", ""))
+    try:
+        min_matches = int(float(request.args.get("min_matches", "0") or 0))
+    except Exception:
+        min_matches = 0
+
+    rows = []
+    for p in data.get("players", []):
+        if competition and clean(p.get("competition")) != competition:
+            continue
+        if team and clean(p.get("team")) != team:
+            continue
+        display_pos = display_position_value(p)
+        if position and display_pos != position:
+            continue
+        try:
+            matches = int(float(p.get("matches") or 0))
+        except Exception:
+            matches = 0
+        if matches < min_matches:
+            continue
+        haystack = f"{p.get('name','')} {p.get('team','')}".lower()
+        if q and q not in haystack:
+            continue
+        rows.append(p)
+
+    order = {"FW": 0, "공격수": 0, "MF": 1, "미드필더": 1, "DF": 2, "수비수": 2, "GK": 3, "골키퍼": 3}
+
+    def has_stats(p: Dict[str, Any]) -> int:
+        return int(bool(float(p.get("matches") or 0) + float(p.get("goals") or 0) + float(p.get("assists") or 0)))
+
+    rows.sort(key=lambda p: (
+        -has_stats(p),
+        -float(p.get("upi_adjusted") or 0),
+        order.get(display_position_value(p), 9),
+        clean(p.get("name")),
+    ))
+    return rows
+
+
+def _csv_escape(value: Any) -> str:
+    s = str(value if value is not None else "")
+    return '"' + s.replace('"', '""') + '"'
+
+
+def _make_players_csv(rows: list[Dict[str, Any]]) -> str:
+    columns = ["rank", "name", "competition", "team", "position", "profile", "matches", "goals", "assists", "sfi", "reliability", "grade"]
+    lines = [",".join(columns)]
+    for i, p in enumerate(rows, 1):
+        values = [
+            i,
+            p.get("name", ""),
+            p.get("competition", ""),
+            p.get("team", ""),
+            display_position_value(p),
+            _csv_profile_value(p),
+            int(float(p.get("matches") or 0)),
+            int(float(p.get("goals") or 0)),
+            int(float(p.get("assists") or 0)),
+            f"{float(p.get('upi_adjusted') or 0):.1f}",
+            f"{float(p.get('reliability') or 0):.0f}%",
+            _csv_grade_value(p),
+        ]
+        lines.append(",".join(_csv_escape(v) for v in values))
+    return "\ufeff" + "\n".join(lines) + "\n"
+
 @APP.get("/api/export")
 def api_export():
     if not _admin_token_ok():
         return _admin_required_response()
     return send_file(CURRENT, as_attachment=True, download_name="scoutflow_v59_data.json")
+
+
+@APP.get("/api/export-csv")
+def api_export_csv():
+    if not _admin_token_ok():
+        return _admin_required_response()
+    data = safe_data()
+    rows = _csv_filtered_players(data)
+    csv_text = _make_players_csv(rows)
+    filename = datetime.now().strftime("scoutflow_export_%Y%m%d_%H%M.csv")
+    return Response(
+        csv_text,
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @APP.get("/api/k12-check")
